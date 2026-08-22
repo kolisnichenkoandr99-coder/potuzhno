@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 TOKEN = "8975890986:AAHvueaoSTuFtpKoytaRiOOl968ZGRYKD1k"
 
 # Ваша ссылка на игру уже успешно добавлена сюда
-WEB_APP_URL = "https://github.io"
+WEB_APP_URL = "https://kolisnichenkoandr99-coder.github.io/potuzhno/"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
