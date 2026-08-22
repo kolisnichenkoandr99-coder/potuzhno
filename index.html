@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Козацький Клікер</title>
+    <!-- Подключаем Telegram Web App API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, #0057B7 50%, #FFD700 50%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .score-container {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .cps-container {
+            font-size: 14px;
+            color: #eee;
+        }
+
+        .click-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .click-object {
+            width: 200px;
+            height: 200px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 90px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.05s ease;
+            border: 5px solid #0057B7;
+        }
+
+        .click-object:active {
+            transform: scale(0.92);
+        }
+
+        .shop-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            padding: 15px 0;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+            max-height: 35vh;
+            overflow-y: auto;
+        }
+
+        .shop-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0057B7;
+            font-size: 18px;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .shop-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .item-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .buy-btn {
+            background-color: #0057B7;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .buy-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Анимация всплывающих цифр */
+        .floating-text {
+            position: absolute;
+            color: #FFD700;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 2px #000;
+            pointer-events: none;
+            animation: floatUp 0.6s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="score-container">🌾 <span id="balance">0</span></div>
+        <div class="cps-container">Пасивний дохід: +<span id="cps">0</span>/сек</div>
+    </div>
+
+    <div class="click-area" id="clickArea">
+        <div class="click-object" id="clickBtn">🥖</div>
+    </div>
+
+    <div class="shop-container">
+        <div class="shop-title">Магазин Покращень 🏪</div>
+        
+        <div class="shop-item">
+            <div class="item-info">
+                <span class="item-name">Клик +1 (Глечик)🏺</span>
+                <span class="item-desc">Ціна: <span id="cost-click">10</span> 🌾</span>
+            </div>
+            <button class="buy-btn" id="btn-upgrade-click">Купити</button>
+        </div>
+
+        <div class="shop-item">
+            <div class="item-info">
+                <span class="item-name">Грубка з Паляницями 🔥</span>
+                <span class="item-desc">+1 🌾/сек | Ціна: <span id="cost-auto1">50</span> 🌾</span>
+            </div>
+            <button class="buy-btn" id="btn-upgrade-auto1">Купити</button>
+        </div>
+
+        <div class="shop-item">
+            <div class="item-info">
+                <span class="item-name">Вітряк (Мельниця) 💨</span>
+                <span class="item-desc">+5 🌾/сек | Ціна: <span id="cost-auto2">250</span> 🌾</span>
+            </div>
+            <button class="buy-btn" id="btn-upgrade-auto2">Купити</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Расширяем окно на максимум
+
+        // Игровые переменные
+        let balance = 0;
+        let clickPower = 1;
+        let cps = 0;
+
+        let costClick = 10;
+        let costAuto1 = 50;
+        let costAuto2 = 250;
+
+        // DOM элементы
+        const balanceEl = document.getElementById('balance');
+        const cpsEl = document.getElementById('cps');
+        const clickBtn = document.getElementById('clickBtn');
+        const clickArea = document.getElementById('clickArea');
+
+        const btnUpgradeClick = document.getElementById('btn-upgrade-click');
+        const btnUpgradeAuto1 = document.getElementById('btn-upgrade-auto1');
+        const btnUpgradeAuto2 = document.getElementById('btn-upgrade-auto2');
+
+        const costClickEl = document.getElementById('cost-click');
+        const costAuto1El = document.getElementById('cost-auto1');
+        const costAuto2El = document.getElementById('cost-auto2');
+
+        // Обновление интерфейса
+        function updateUI() {
+            balanceEl.innerText = Math.floor(balance);
+            cpsEl.innerText = cps;
+            costClickEl.innerText = costClick;
+            costAuto1El.innerText = costAuto1;
+            costAuto2El.innerText = costAuto2;
+
+            btnUpgradeClick.disabled = balance < costClick;
+            btnUpgradeAuto1.disabled = balance < costAuto1;
+            btnUpgradeAuto2.disabled = balance < costAuto2;
+        }
+
+        // Клик по объекту (Паляница)
+        clickBtn.addEventListener('click', (e) => {
+            balance += clickPower;
+            createFloatingText(e.clientX, e.clientY, `+${clickPower}`);
+            updateUI();
+            
+            // Легкая вибрация при клике (работает на смартфонах в TG)
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        });
+
+        // Создание вылетающих цифр
+        function createFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.left = `${x - 15}px`;
+            el.style.top = `${y - 30}px`;
+            clickArea.appendChild(el);
+
+            setTimeout(() => {
+                el.remove();
+            }, 600);
+        }
+
+        // Покупка апгрейда клика
+        btnUpgradeClick.addEventListener('click', () => {
+            if (balance >= costClick) {
+                balance -= costClick;
+                clickPower += 1;
+                costClick = Math.round(costClick * 1.5);
+                updateUI();
+            }
+        });
+
+        // Покупка пассивного дохода 1 (Печь)
+        btnUpgradeAuto1.addEventListener('click', () => {
+            if (balance >= costAuto1) {
+                balance -= costAuto1;
+                cps += 1;
+                costAuto1 = Math.round(costAuto1 * 1.6);
+                updateUI();
+            }
+        });
+
+        // Покупка пассивного дохода 2 (Ветряк)
+        btnUpgradeAuto2.addEventListener('click', () => {
+            if (balance >= costAuto2) {
+                balance -= costAuto2;
+                cps += 5;
+                costAuto2 = Math.round(costAuto2 * 1.7);
+                updateUI();
+            }
+        });
+
+        // Таймер пассивного дохода (раз в секунду)
+        setInterval(() => {
+            if (cps > 0) {
+                balance += cps;
+                updateUI();
+            }
+        }, 1000);
+
+        // Первая инициализация
+        updateUI();
+    </script>
+</body>
+</html>
